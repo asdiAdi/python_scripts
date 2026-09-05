@@ -235,7 +235,7 @@ dev = [
 requires-dist = [{ name = "openrouter", specifier = ">=1.1.126" }]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0.0" }]
+dev = [{ name = "pytest", specifier = ">=9.1.1" }]
 
 [[package]]
 name = "typing-extensions"

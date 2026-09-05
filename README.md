@@ -19,6 +19,14 @@ cp -r scripts/hello_world scripts/my_tool
 uv run pytest scripts/my_tool/test_cli.py -v
 ```
 
+## Tests
+
+```bash
+uv run pytest -v            # everything
+uv run pytest scripts/hello_world/test_cli.py -v
+uv run pytest tests/test_main.py -v
+```
+
 ## Project map
 
 | Path | What |

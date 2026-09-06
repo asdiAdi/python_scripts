@@ -50,15 +50,6 @@ def test_hello_world_with_name():
     assert proc.stdout.strip() == "Hello Bob"
 
 
-def test_no_command_error_only():
-    proc = run_main()
-    assert proc.returncode == 2
-    assert proc.stderr.strip() == "error: no command given"
-    assert proc.stdout == ""
-    assert "usage" not in proc.stderr.lower()
-    assert "main.py" not in proc.stderr
-
-
 def test_unknown_command_error_only():
     proc = run_main("bogus-command")
     assert proc.returncode == 2

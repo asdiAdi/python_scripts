@@ -15,3 +15,6 @@ wheels/
 !.env.example
 *.pem
 *secret*
+
+# Local Testing
+dummy/

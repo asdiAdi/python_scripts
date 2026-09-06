@@ -20,8 +20,7 @@ from openrouter import OpenRouter
 
 load_dotenv()
 
-DEFAULT_MODEL = "openai/gpt-4o-mini"
-# TODO:: Add alternate models or make logic where api automatically searches for best/free models if default model is unavaliable
+DEFAULT_MODEL = "minimax/minimax-m3:free"  # TODO:: Add alternate models or make logic where api automatically searches for best/free models if default model is unavaliable
 
 ENV_API_KEY = "OPENROUTER_API_KEY"
 ENV_MODEL = "OPENROUTER_MODEL"
@@ -143,8 +142,8 @@ class PromptClient:
 
     def _client_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {"api_key": self.api_key}
-        if self.base_url:
-            kwargs["server_url"] = self.base_url
+        # if self.base_url:
+        #     kwargs["server_url"] = self.base_url
         if self.timeout is not None:
             kwargs["timeout_ms"] = int(self.timeout * 1000)
         if self.app_url:
@@ -173,6 +172,27 @@ class PromptClient:
         with self._client_factory(**self._client_kwargs()) as client:
             result = client.chat.send(**send_kwargs)
         return _extract_text(result)
+
+    def send_raw(
+        self,
+        messages: Sequence[dict[str, str]],
+        model: str | None = None,
+        max_tokens: int | None = None,
+    ) -> Any:
+        """Send messages and return the raw SDK result (no text extraction)."""
+        resolved_model = model or self.model
+        resolved_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
+        send_kwargs: dict[str, Any] = {
+            "messages": list(messages),
+            "model": resolved_model,
+            "stream": False,
+        }
+        if resolved_max_tokens is not None:
+            send_kwargs["max_tokens"] = resolved_max_tokens
+
+        with self._client_factory(**self._client_kwargs()) as client:
+            return client.chat.send(**send_kwargs)
 
     def ask(
         self,

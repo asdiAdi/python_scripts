@@ -1,21 +1,3 @@
-"""Dispatcher for python-scripts.
-
-Usage:
-    python main.py --help
-    python main.py --list
-    python main.py --where hello-world
-    python main.py hello-world [--name NAME]
-    python main.py <command> [args...]
-
-Adding a new script:
-    1. Create scripts/<snake_name>/cli.py
-    2. Implement register(subparsers, command) and run(args)
-       - folder <snake_name> is the single source of truth;
-         command is <snake_name> with _ -> - (e.g. hello_world -> hello-world).
-    3. See scripts/hello_world/cli.py as a template.
-    4. No changes to this file are needed.
-"""
-
 from __future__ import annotations
 
 import argparse

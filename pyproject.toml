@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "openrouter>=1.1.126",
+    "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.0.0",
 ]
 

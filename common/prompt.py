@@ -12,6 +12,7 @@ Usage from any script:
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -29,6 +30,7 @@ ENV_TIMEOUT = "OPENROUTER_TIMEOUT"
 ENV_MAX_TOKENS = "OPENROUTER_MAX_TOKENS"
 ENV_APP_URL = "OPENROUTER_APP_URL"
 ENV_APP_NAME = "OPENROUTER_APP_NAME"
+ENV_PROGRESS = "OPENROUTER_PROGRESS"
 
 
 def _getenv(name: str, default: str | None = None, required: bool = True) -> str | None:
@@ -91,6 +93,7 @@ class PromptClient:
         app_url: App URL for OpenRouter rankings.
         app_name: App display name.
         client_factory: Factory returning a context-manager OpenRouter client.
+        progress: Show transient stderr status.
     """
 
     def __init__(
@@ -103,6 +106,7 @@ class PromptClient:
         app_url: str | None = None,
         app_name: str | None = None,
         client_factory: Callable[..., Any] | None = None,
+        progress: bool | None = None,
     ) -> None:
         self.api_key = api_key or _getenv(ENV_API_KEY)
         self.model = model or _getenv(ENV_MODEL, DEFAULT_MODEL, required=False)
@@ -139,6 +143,52 @@ class PromptClient:
                     )
 
         self._client_factory = client_factory or OpenRouter
+        self.progress = progress
+        self._status_len = 0
+
+    def _progress_enabled(self) -> bool:
+        if self.progress is not None:
+            return bool(self.progress)
+        raw = os.getenv(ENV_PROGRESS)
+        if raw is not None and raw.strip() != "":
+            normalized = raw.strip().lower()
+            if normalized in ("0", "false", "no", "off", "none"):
+                return False
+            if normalized in ("1", "true", "yes", "on"):
+                return True
+        try:
+            isatty = sys.stderr.isatty()
+        except Exception:
+            return False
+        return bool(isatty)
+
+    def _emit_status(self, msg: str) -> None:
+        if not self._progress_enabled():
+            return
+        try:
+            use_ansi = "NO_COLOR" not in os.environ
+            if use_ansi:
+                sys.stderr.write(f"\r\033[2K{msg}")
+            else:
+                sys.stderr.write(f"\r{msg}")
+            sys.stderr.flush()
+            self._status_len = len(msg)
+        except Exception:
+            pass
+
+    def _clear_status(self) -> None:
+        if not self._progress_enabled():
+            return
+        try:
+            use_ansi = "NO_COLOR" not in os.environ
+            if use_ansi:
+                sys.stderr.write("\r\033[2K\r")
+            else:
+                sys.stderr.write("\r" + " " * self._status_len + "\r")
+            sys.stderr.flush()
+            self._status_len = 0
+        except Exception:
+            pass
 
     def _client_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {"api_key": self.api_key}
@@ -169,9 +219,15 @@ class PromptClient:
         if resolved_max_tokens is not None:
             send_kwargs["max_tokens"] = resolved_max_tokens
 
-        with self._client_factory(**self._client_kwargs()) as client:
-            result = client.chat.send(**send_kwargs)
-        return _extract_text(result)
+        self._emit_status(f"sending to {resolved_model}...")
+        self._emit_status("waiting for response...")
+        try:
+            with self._client_factory(**self._client_kwargs()) as client:
+                result = client.chat.send(**send_kwargs)
+            self._emit_status("parsing response...")
+            return _extract_text(result)
+        finally:
+            self._clear_status()
 
     def send_raw(
         self,
@@ -191,8 +247,13 @@ class PromptClient:
         if resolved_max_tokens is not None:
             send_kwargs["max_tokens"] = resolved_max_tokens
 
-        with self._client_factory(**self._client_kwargs()) as client:
-            return client.chat.send(**send_kwargs)
+        self._emit_status(f"sending to {resolved_model}...")
+        self._emit_status("waiting for response...")
+        try:
+            with self._client_factory(**self._client_kwargs()) as client:
+                return client.chat.send(**send_kwargs)
+        finally:
+            self._clear_status()
 
     def ask(
         self,

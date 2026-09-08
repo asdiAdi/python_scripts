@@ -84,7 +84,7 @@ def _parse_month_only(spec: str, now: datetime) -> tuple[int, int, str] | None:
 
 
 def resolve_db_path(explicit: str | None) -> Path:
-    """Return the opencode.db path. Pure-ish: reads env only as fallback."""
+    """Return the opencode.db path. Reads env only as fallback."""
     if explicit:
         return Path(explicit).expanduser()
     env = os.environ.get(ENV_DB_PATH, "").strip()
@@ -108,7 +108,7 @@ def _today_6am(now: datetime) -> datetime:
 
 
 def parse_date_window(spec: str, now: datetime | None = None) -> tuple[int, int, str]:
-    """Parse a date spec into (start_ms, end_ms, label). Pure function.
+    """Parse a date spec into (start_ms, end_ms, label).
 
     start_ms inclusive, end_ms exclusive. All boundaries are 6am Manila.
     """
@@ -250,7 +250,7 @@ def fetch_parts(db_path: Path, start_ms: int, end_ms: int) -> list[dict]:
 
 
 def build_system_prompt(max_bullets: int | None) -> str:
-    """Return the bullets-only system prompt. Pure function."""
+    """Return the bullets-only system prompt."""
     if max_bullets is None:
         count_rule = "Output as many bullet point(s) as needed to cover everything."
     else:
@@ -269,7 +269,7 @@ def build_system_prompt(max_bullets: int | None) -> str:
 
 
 def build_user_prompt(groups: list[dict], label: str) -> str:
-    """Return the user prompt carrying the DB rows. Pure function.
+    """Return the user prompt carrying the DB rows.
 
     Truncates to MAX_PROMPT_CHARS so huge windows don't blow model limits.
     """
@@ -291,7 +291,7 @@ def build_user_prompt(groups: list[dict], label: str) -> str:
 
 
 def clean_bullets(raw: str) -> str:
-    """Normalize model output to dash bullets. Pure function."""
+    """Normalize model output to dash bullets."""
     out: list[str] = []
     for line in (raw or "").splitlines():
         s = line.strip()

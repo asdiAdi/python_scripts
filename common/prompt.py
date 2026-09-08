@@ -201,7 +201,7 @@ class PromptClient:
         max_tokens: int | None = None,
         system: str | None = None,
     ) -> str:
-        """Simple string prompt: ask("capital of France?") -> "Paris"."""
+        """Simple string prompt."""
         if not text or not text.strip():
             raise RuntimeError("error: prompt text must not be empty")
         messages: list[dict[str, str]] = []

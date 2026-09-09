@@ -5,9 +5,16 @@ A collection of small Python scripts, each self-contained with its own tests and
 ## Install as `ai`
 
 ```bash
-uv add git+https://github.com/asdiAdi/python_scripts.git@v1.0.0
+uv tool install git+https://github.com/asdiAdi/python_scripts
 ai --list
 ai ask "what is the capital of france"
+-> Paris
+```
+
+## Uninstall
+
+```bash
+uv tool uninstall python_scripts
 ```
 
 ## Configuration
@@ -19,8 +26,6 @@ ai config init   # writes ~/.config/ai/config.toml)
 ai config show   # resolved values
 ai config path   # print location
 ```
-
-Precedence per key: config file > default.
 
 ## Quickstart (local dev)
 

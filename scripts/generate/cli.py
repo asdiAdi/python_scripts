@@ -93,7 +93,7 @@ def run(args) -> str | int:
     """Entrypoint called by main.py. Must return str, int, or None."""
     if bool(getattr(args, "list_templates", False)):
         return build_list_message(available_templates())
-    dest = Path(os.environ.get("OLDPWD", "")).expanduser()
+    dest = Path(os.environ.get("PWD", "")).expanduser()
     name = getattr(args, "template", None) or ""
     if not name:
         print("error: no template given", file=sys.stderr)

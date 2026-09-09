@@ -79,7 +79,16 @@ def test_copy_template_dir(tmp_path):
     assert copied == [".github/workflows/deploy.yml"]
     target = tmp_path / ".github" / "workflows" / "deploy.yml"
     assert target.is_file()
-    assert target.read_text() == (cli_mod.FILES_DIR / "static-workflow" / ".github" / "workflows" / "deploy.yml").read_text()
+    assert (
+        target.read_text()
+        == (
+            cli_mod.FILES_DIR
+            / "static-workflow"
+            / ".github"
+            / "workflows"
+            / "deploy.yml"
+        ).read_text()
+    )
 
 
 def test_copy_template_file(tmp_path, monkeypatch):
@@ -143,13 +152,13 @@ def test_run_no_template_returns_1(capsys):
 
 
 def test_run_unknown_template_returns_1(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("OLDPWD", str(tmp_path))
+    monkeypatch.setenv("PWD", str(tmp_path))
     assert run(Namespace(template="nosuch", list_templates=False, force=False)) == 1
     assert "error: unknown template" in capsys.readouterr().err
 
 
-def test_run_success_copies_into_oldpwd(monkeypatch, tmp_path):
-    monkeypatch.setenv("OLDPWD", str(tmp_path))
+def test_run_success_copies_into_pwd(monkeypatch, tmp_path):
+    monkeypatch.setenv("PWD", str(tmp_path))
     out = run(Namespace(template="static-workflow", list_templates=False, force=False))
     assert isinstance(out, str)
     assert "generated 'static-workflow': 1 file(s)" in out
@@ -157,23 +166,29 @@ def test_run_success_copies_into_oldpwd(monkeypatch, tmp_path):
 
 
 def test_run_refuses_overwrite_without_force(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("OLDPWD", str(tmp_path))
-    assert run(Namespace(template="static-workflow", list_templates=False, force=False)) != 1
+    monkeypatch.setenv("PWD", str(tmp_path))
+    assert (
+        run(Namespace(template="static-workflow", list_templates=False, force=False))
+        != 1
+    )
     capsys.readouterr()
-    assert run(Namespace(template="static-workflow", list_templates=False, force=False)) == 1
+    assert (
+        run(Namespace(template="static-workflow", list_templates=False, force=False))
+        == 1
+    )
     assert "refusing to overwrite" in capsys.readouterr().err
 
 
 def test_run_force_overwrites(monkeypatch, tmp_path):
-    monkeypatch.setenv("OLDPWD", str(tmp_path))
+    monkeypatch.setenv("PWD", str(tmp_path))
     run(Namespace(template="static-workflow", list_templates=False, force=False))
     out = run(Namespace(template="static-workflow", list_templates=False, force=True))
     assert isinstance(out, str)
     assert "generated 'static-workflow'" in out
 
 
-def test_run_defaults_to_cwd_without_oldpwd(monkeypatch, tmp_path):
-    monkeypatch.delenv("OLDPWD", raising=False)
+def test_run_defaults_to_cwd_without_pwd(monkeypatch, tmp_path):
+    monkeypatch.delenv("PWD", raising=False)
     monkeypatch.chdir(tmp_path)
     out = run(Namespace(template="static-workflow", list_templates=False, force=False))
     assert isinstance(out, str)
@@ -182,14 +197,13 @@ def test_run_defaults_to_cwd_without_oldpwd(monkeypatch, tmp_path):
 
 
 def test_run_empty_template_treated_as_missing(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("OLDPWD", str(tmp_path))
+    monkeypatch.setenv("PWD", str(tmp_path))
     assert run(Namespace(template="", list_templates=False, force=False)) == 1
     assert "error: no template given" in capsys.readouterr().err
 
 
 def test_run_returns_pathlib_dest_str(monkeypatch, tmp_path):
-    # OLDPWD may be relative; run() must still succeed via Path handling.
-    monkeypatch.delenv("OLDPWD", raising=False)
+    monkeypatch.delenv("PWD", raising=False)
     monkeypatch.chdir(tmp_path)
     out = run(Namespace(template="static-workflow", list_templates=False, force=True))
     assert isinstance(out, str)

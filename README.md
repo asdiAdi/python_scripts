@@ -2,7 +2,27 @@
 
 A collection of small Python scripts, each self-contained with its own tests and docs.
 
-## Quickstart
+## Install as `ai`
+
+```bash
+uv add git+https://github.com/asdiAdi/python_scripts.git@v1.0.0
+ai --list
+ai ask "what is the capital of france"
+```
+
+## Configuration
+
+Configuration is TOML-only (`~/.config/ai/config.toml`).:
+
+```bash
+ai config init   # writes ~/.config/ai/config.toml)
+ai config show   # resolved values
+ai config path   # print location
+```
+
+Precedence per key: config file > default.
+
+## Quickstart (local dev)
 
 ```bash
 uv sync --group dev

@@ -37,8 +37,8 @@ def test_register_uses_folder_derived_command():
     assert args.command == "recap"
     assert args.date == []
     assert args.bullets == 5
-    assert args.db is None
-    assert args.model is None
+    assert not hasattr(args, "db")
+    assert not hasattr(args, "model")
     assert args._func is run
 
 
@@ -49,9 +49,8 @@ def test_register_parses_date_and_flags():
     args = parser.parse_args(["recap", "yesterday", "-b", "3"])
     assert args.date == ["yesterday"]
     assert args.bullets == 3
-    args = parser.parse_args(["recap", "--bullets", "all", "--db", "/tmp/x.db"])
+    args = parser.parse_args(["recap", "--bullets", "all"])
     assert args.bullets is None
-    assert args.db == "/tmp/x.db"
 
 
 def test_valid_bullets_accepts_range_and_all():
@@ -175,19 +174,17 @@ def test_parse_invalid_raises():
 # --- db path + fetch ---
 
 
-def test_resolve_db_path_explicit():
-    assert resolve_db_path("/tmp/x.db") == Path("/tmp/x.db")
-    assert resolve_db_path("~/x.db") == Path.home() / "x.db"
-
-
-def test_resolve_db_path_env(monkeypatch):
-    monkeypatch.setenv("OPENCODE_DB_PATH", "/tmp/env.db")
-    assert resolve_db_path(None) == Path("/tmp/env.db")
-
-
 def test_resolve_db_path_default(monkeypatch):
-    monkeypatch.delenv("OPENCODE_DB_PATH", raising=False)
-    assert str(resolve_db_path(None)).endswith("opencode.db")
+    monkeypatch.setattr(cli_mod, "load_file", lambda path=None: {})
+    assert str(resolve_db_path()).endswith("opencode.db")
+
+
+def test_resolve_db_path_from_config(monkeypatch, tmp_path):
+    db = tmp_path / "custom.db"
+    monkeypatch.setattr(
+        cli_mod, "load_file", lambda path=None: {"recap": {"db_path": str(db)}}
+    )
+    assert resolve_db_path() == db
 
 
 def _make_db(path: Path, rows: list[tuple[str, str, int]]):

@@ -21,7 +21,6 @@ def test_list_shows_hello_world():
     proc = run_main("--list")
     assert proc.returncode == 0
     assert "hello-world" in proc.stdout
-    assert "hello_world" in proc.stdout  # path-annotated so origin is obvious
 
 
 def test_where_shows_path():

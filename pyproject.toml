@@ -4,13 +4,20 @@ version = "0.1.0"
 description = "Collection of reusable Python scripts with a single dispatcher (main.py)"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "openrouter>=1.1.126",
-    "python-dateutil>=2.9.0.post0",
-    "python-dotenv>=1.0.0",
-]
+dependencies = ["openrouter>=1.1.126", "python-dateutil>=2.9.0.post0"]
 
 [dependency-groups]
-dev = [
-    "pytest>=9.1.1",
-]
+dev = ["pytest>=9.1.1"]
+
+[project.scripts]
+ai = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["common", "scripts"]
+
+[tool.hatch.build]
+force-include = { "main.py" = "main.py" }

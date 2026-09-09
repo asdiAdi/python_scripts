@@ -30,5 +30,3 @@ $ uv run python main.py commit -n 2
 Pick 1-2 to commit [n to abort]: 1
 [abc1234] feat(auth): add login rate limit
 ```
-
-Abort with `n` (or empty input, `q`): unstages and returns without committing. Requires `OPENROUTER_API_KEY`; fails with `error: ...` and exit `1` outside a git repo, on clean tree returns `nothing to commit, working tree clean`.

@@ -95,7 +95,7 @@ def run_git(*argv: str) -> subprocess.CompletedProcess[str]:
     """Run a git command in `cwd`"""
     return subprocess.run(
         ["git", *argv],
-        cwd=os.environ.get("OLDPWD", ""),
+        cwd=os.environ.get("PWD", ""),
         capture_output=True,
         text=True,
         check=False,

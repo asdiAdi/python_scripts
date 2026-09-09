@@ -3,7 +3,7 @@
 Usage from any script:
     from common.prompt import PromptClient
 
-    client = PromptClient()  # reads .env / environment
+    client = PromptClient()  # reads ~/.config/ai/config.toml
     answer = client.ask("What is the capital of France?")
     answer = client.chat([{"role": "user", "content": "Hi"}])
 
@@ -16,34 +16,17 @@ import sys
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from dotenv import load_dotenv
 from openrouter import OpenRouter
 
-load_dotenv()
+from common.config import (
+    OPENROUTER_SECTION,
+    config_path,
+    get_section,
+    load_file,
+    resolve_file_value,
+)
 
 DEFAULT_MODEL = "minimax/minimax-m3:free"  # TODO:: Add alternate models or make logic where api automatically searches for best/free models if default model is unavaliable
-
-ENV_API_KEY = "OPENROUTER_API_KEY"
-ENV_MODEL = "OPENROUTER_MODEL"
-ENV_BASE_URL = "OPENROUTER_BASE_URL"
-ENV_TIMEOUT = "OPENROUTER_TIMEOUT"
-ENV_MAX_TOKENS = "OPENROUTER_MAX_TOKENS"
-ENV_APP_URL = "OPENROUTER_APP_URL"
-ENV_APP_NAME = "OPENROUTER_APP_NAME"
-ENV_PROGRESS = "OPENROUTER_PROGRESS"
-
-
-def _getenv(name: str, default: str | None = None, required: bool = True) -> str | None:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        if default is not None:
-            return default
-        if required:
-            raise RuntimeError(
-                f"error: Required environment variable '{name}' is not set."
-            )
-        return None
-    return raw.strip()
 
 
 def _extract_text(result: Any) -> str:
@@ -82,65 +65,54 @@ def _extract_text(result: Any) -> str:
 
 
 class PromptClient:
-    """Reusable OpenRouter chat client for all scripts.
-
-    Args:
-        api_key: Explicit key.
-        model: Default model.
-        base_url: Override server URL.
-        timeout: Request timeout in seconds.
-        max_tokens: Default completion cap.
-        app_url: App URL for OpenRouter rankings.
-        app_name: App display name.
-        client_factory: Factory returning a context-manager OpenRouter client.
-        progress: Show transient stderr status.
-    """
+    """Reusable OpenRouter chat client for all scripts."""
 
     def __init__(
         self,
-        api_key: str | None = None,
-        model: str | None = None,
-        base_url: str | None = None,
-        timeout: float | None = None,
-        max_tokens: int | None = None,
-        app_url: str | None = None,
-        app_name: str | None = None,
         client_factory: Callable[..., Any] | None = None,
         progress: bool | None = None,
+        config: dict | None = None,
     ) -> None:
-        self.api_key = api_key or _getenv(ENV_API_KEY)
-        self.model = model or _getenv(ENV_MODEL, DEFAULT_MODEL, required=False)
-        self.base_url = base_url or _getenv(ENV_BASE_URL)
-        self.app_url = app_url or _getenv(ENV_APP_URL, required=False)
-        self.app_name = app_name or _getenv(ENV_APP_NAME, required=False)
+        section = get_section(
+            config if config is not None else load_file(), OPENROUTER_SECTION
+        )
+        self.api_key = resolve_file_value(section.get("api_key"))
+        if not self.api_key:
+            raise RuntimeError(
+                "error: Required config value 'openrouter.api_key' is not set. "
+                f"Add openrouter.api_key to {config_path()} (ai config init)."
+            )
+        self.model = resolve_file_value(section.get("model"), DEFAULT_MODEL)
+        self.base_url = resolve_file_value(section.get("base_url"))
+        if not self.base_url:
+            raise RuntimeError(
+                "error: Required config value 'openrouter.base_url' is not set. "
+                f"Add openrouter.base_url to {config_path()} (ai config init)."
+            )
+        self.app_url = resolve_file_value(section.get("app_url"))
+        self.app_name = resolve_file_value(section.get("app_name"))
 
-        if timeout is not None:
-            self.timeout = timeout
+        raw_timeout = resolve_file_value(section.get("timeout"))
+        if raw_timeout is None:
+            self.timeout = None
         else:
-            raw_timeout = _getenv(ENV_TIMEOUT, required=False)
-            if raw_timeout is None:
-                self.timeout = None
-            else:
-                try:
-                    self.timeout = float(raw_timeout)
-                except ValueError:
-                    raise RuntimeError(
-                        f"error: {ENV_TIMEOUT} must be a number, got {raw_timeout!r}"
-                    )
+            try:
+                self.timeout = float(raw_timeout)
+            except TypeError, ValueError:
+                raise RuntimeError(
+                    f"error: openrouter.timeout must be a number, got {raw_timeout!r}"
+                )
 
-        if max_tokens is not None:
-            self.max_tokens = max_tokens
+        raw_max_tokens = resolve_file_value(section.get("max_tokens"))
+        if raw_max_tokens is None:
+            self.max_tokens = None
         else:
-            raw_max_tokens = _getenv(ENV_MAX_TOKENS, None, required=False)
-            if raw_max_tokens is None:
-                self.max_tokens = None
-            else:
-                try:
-                    self.max_tokens = int(raw_max_tokens)
-                except ValueError:
-                    raise RuntimeError(
-                        f"error: {ENV_MAX_TOKENS} must be an integer, got {raw_max_tokens!r}"
-                    )
+            try:
+                self.max_tokens = int(raw_max_tokens)
+            except TypeError, ValueError:
+                raise RuntimeError(
+                    f"error: openrouter.max_tokens must be an integer, got {raw_max_tokens!r}"
+                )
 
         self._client_factory = client_factory or OpenRouter
         self.progress = progress
@@ -149,13 +121,6 @@ class PromptClient:
     def _progress_enabled(self) -> bool:
         if self.progress is not None:
             return bool(self.progress)
-        raw = os.getenv(ENV_PROGRESS)
-        if raw is not None and raw.strip() != "":
-            normalized = raw.strip().lower()
-            if normalized in ("0", "false", "no", "off", "none"):
-                return False
-            if normalized in ("1", "true", "yes", "on"):
-                return True
         try:
             isatty = sys.stderr.isatty()
         except Exception:
@@ -205,11 +170,9 @@ class PromptClient:
     def _send(
         self,
         messages: Sequence[dict[str, str]],
-        model: str | None = None,
-        max_tokens: int | None = None,
     ) -> str:
-        resolved_model = model or self.model
-        resolved_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+        resolved_model = self.model
+        resolved_max_tokens = self.max_tokens
 
         send_kwargs: dict[str, Any] = {
             "messages": list(messages),
@@ -232,22 +195,17 @@ class PromptClient:
     def send_raw(
         self,
         messages: Sequence[dict[str, str]],
-        model: str | None = None,
-        max_tokens: int | None = None,
     ) -> Any:
         """Send messages and return the raw SDK result (no text extraction)."""
-        resolved_model = model or self.model
-        resolved_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
-
         send_kwargs: dict[str, Any] = {
             "messages": list(messages),
-            "model": resolved_model,
+            "model": self.model,
             "stream": False,
         }
-        if resolved_max_tokens is not None:
-            send_kwargs["max_tokens"] = resolved_max_tokens
+        if self.max_tokens is not None:
+            send_kwargs["max_tokens"] = self.max_tokens
 
-        self._emit_status(f"sending to {resolved_model}...")
+        self._emit_status(f"sending to {self.model}...")
         self._emit_status("waiting for response...")
         try:
             with self._client_factory(**self._client_kwargs()) as client:
@@ -258,8 +216,6 @@ class PromptClient:
     def ask(
         self,
         text: str,
-        model: str | None = None,
-        max_tokens: int | None = None,
         system: str | None = None,
     ) -> str:
         """Simple string prompt."""
@@ -269,15 +225,13 @@ class PromptClient:
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": text})
-        return self._send(messages, model=model, max_tokens=max_tokens)
+        return self._send(messages)
 
     def chat(
         self,
         messages: Sequence[dict[str, str]],
-        model: str | None = None,
-        max_tokens: int | None = None,
     ) -> str:
         """Full conversation prompt: chat([{"role": "user", ...}]) -> text."""
         if not messages:
             raise RuntimeError("error: messages must not be empty")
-        return self._send(messages, model=model, max_tokens=max_tokens)
+        return self._send(messages)

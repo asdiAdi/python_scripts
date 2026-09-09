@@ -11,8 +11,6 @@ wheels/
 .venv
 
 # Segrets - never commit
-.env
-!.env.example
 *.pem
 *secret*
 

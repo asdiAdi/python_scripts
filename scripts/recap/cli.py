@@ -17,11 +17,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from common.config import RECAP_SECTION, get_section, load_file, resolve_file_value
 from common.prompt import PromptClient
 
 HELP = "Summarize opencode.db activity in bullets."
 MANILA = ZoneInfo("Asia/Manila")
-ENV_DB_PATH = "OPENCODE_DB_PATH"
 DEFAULT_DB = "~/.local/share/opencode/opencode.db"
 
 DAY_START_HOUR = 6
@@ -83,13 +83,12 @@ def _parse_month_only(spec: str, now: datetime) -> tuple[int, int, str] | None:
     return _month_window(year, month)
 
 
-def resolve_db_path(explicit: str | None) -> Path:
-    """Return the opencode.db path. Reads env only as fallback."""
-    if explicit:
-        return Path(explicit).expanduser()
-    env = os.environ.get(ENV_DB_PATH, "").strip()
-    if env:
-        return Path(env).expanduser()
+def resolve_db_path() -> Path:
+    """Return the opencode.db path from the TOML config file."""
+    section = get_section(load_file(), RECAP_SECTION)
+    resolved = resolve_file_value(section.get("db_path"))
+    if resolved:
+        return Path(resolved).expanduser()
     return Path(DEFAULT_DB).expanduser()
 
 
@@ -333,16 +332,6 @@ def register(subparsers, command: str) -> None:
         default=5,
         help="Maximum bullets (1-20, default: 5, fewer is OK) or 'all' for uncapped output.",
     )
-    parser.add_argument(
-        "--db",
-        default=None,
-        help=f"Path to opencode.db (default: ${ENV_DB_PATH} or {DEFAULT_DB}).",
-    )
-    parser.add_argument(
-        "--model",
-        default=None,
-        help="Override OpenRouter model (default: $OPENROUTER_MODEL).",
-    )
     parser.set_defaults(_func=run)
 
 
@@ -353,8 +342,7 @@ def run(args) -> str | int | None:
         spec = "today"
     max_bullets = getattr(args, "bullets", 5)
     unlimited = max_bullets is None
-    db_path = resolve_db_path(getattr(args, "db", None))
-    model = getattr(args, "model", None)
+    db_path = resolve_db_path()
 
     try:
         start_ms, end_ms, label = parse_date_window(spec)
@@ -376,7 +364,7 @@ def run(args) -> str | int | None:
 
     try:
         client = PromptClient()
-        raw = client.ask(user_prompt, system=system, model=model)
+        raw = client.ask(user_prompt, system=system)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1

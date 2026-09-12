@@ -8,7 +8,7 @@ A collection of small Python scripts, each self-contained with its own tests and
 uv tool install git+https://github.com/asdiAdi/python_scripts
 ai --list
 ai ask "what is the capital of france"
--> Paris
+# → Paris
 ```
 
 ## Uninstall

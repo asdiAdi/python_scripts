@@ -17,6 +17,8 @@ from common.prompt import PromptClient
 
 HELP = "Stage all changes, generate a Conventional Commit message with AI, and commit."
 
+MAX_PROMPT_CHARS = 20000
+
 # Lockfiles and friends are never sent to the model (silently excluded).
 EXCLUDE_SPECS = [
     ":!uv.lock",
@@ -51,12 +53,15 @@ def build_system_prompt(num: int) -> str:
 
 def build_user_prompt(stat: str, status: str, diff: str, num: int) -> str:
     """Return the user prompt carrying the staged change context."""
-    return (
+    full = (
         f"Generate {num} Conventional Commit message(s) for the staged changes below.\n"
         f"\n--- git status --porcelain ---\n{status or '(clean)'}\n"
         f"\n--- git diff --cached --stat ---\n{stat or '(no stat)'}\n"
         f"\n--- git diff --cached ---\n{diff or '(no textual diff; guess from filenames above)'}\n"
     )
+    if len(full) > MAX_PROMPT_CHARS:
+        full = full[:MAX_PROMPT_CHARS] + "\n..."
+    return full
 
 
 def parse_candidates(raw: str, num: int) -> list[str]:

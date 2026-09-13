@@ -17,7 +17,7 @@ from common.prompt import PromptClient
 
 HELP = "Stage all changes, generate a Conventional Commit message with AI, and commit."
 
-MAX_PROMPT_CHARS = 20000
+MAX_PROMPT_CHARS = 80000
 
 # Lockfiles and friends are never sent to the model (silently excluded).
 EXCLUDE_SPECS = [

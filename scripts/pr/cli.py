@@ -31,16 +31,27 @@ def build_system_prompt() -> str:
     """Return the PR-writing system prompt following GitHub best practices."""
     return "\n".join(
         [
-            "You write high-quality GitHub pull request titles and descriptions.",
+            "You write concise, high-quality GitHub pull request titles and descriptions.",
+            "",
             "First line is the title: Conventional-Commit style (<type>[scope]: <subject>),",
             "imperative mood, lowercase subject, no trailing period, max 72 chars.",
+            "",
             "Then a blank line, then the body in markdown with exactly these sections:",
-            "## Summary (1-3 sentences, what and why, not how),",
-            "## Changes (bulleted list of user-visible and notable internal changes, derived from the diff),",
-            "## Testing (bullets of what was tested; use TODO entries if unknown),",
-            "## Notes (risks, breaking changes, follow-ups, or the single line None).",
-            "Plain GitHub markdown only. No HTML, no code fences around the whole answer,",
-            "no filler like 'here is your PR'. Be specific, referencing files/symbols from the diff.",
+            "",
+            "## Summary",
+            "1-2 sentences max. What changed and why it matters. No restating the title.",
+            "Skip obvious context; assume the reader can read the diff.",
+            "",
+            "## Changes",
+            "3-6 bullets max, one line each. Only user-visible or architecturally notable",
+            "changes — skip trivial renames, formatting, or self-evident edits.",
+            "Reference specific files/symbols/functions from the diff, not vague summaries.",
+            "If the diff has more than 6 meaningful changes, group related ones into a single bullet.",
+            "",
+            "## Notes",
+            "Only include real risks, breaking changes, or follow-ups, 1-2 bullets max.",
+            "If none, this section must be exactly: None",
+            "",
         ]
     )
 

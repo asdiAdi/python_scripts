@@ -25,7 +25,7 @@ MANILA = ZoneInfo("Asia/Manila")
 DEFAULT_DB = "~/.local/share/opencode/opencode.db"
 
 DAY_START_HOUR = 6
-MAX_PROMPT_CHARS = 30000
+MAX_PROMPT_CHARS = 80000
 
 
 def _month_number(token: str) -> int | None:
